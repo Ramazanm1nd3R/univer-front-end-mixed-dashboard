@@ -1,16 +1,12 @@
 import React, { useState } from 'react';
-import Counter from './components/Counter';
-import ListManager from './components/ListManager';
-import TogglePanel from './components/TogglePanel';
-import ProfileEditor from './components/ProfileEditor';
-import ButtonInteractive from './components/ButtonInteractive';
-import ThemeToggle from './components/ThemeToggle';
-import DataFetcher from './components/DataFetcher';
-import Timer from './components/Timer';
-import WindowSize from './components/WindowSize';
-import Dashboard from './components/Dashboard/Dashboard';
+import './App.css';
 import Header from './components/Layout/Header';
 import Footer from './components/Layout/Footer';
+import ThemeToggle from './components/ThemeToggle';
+import Dashboard from './components/Dashboard/Dashboard';
+import ToolsPage from './components/Pages/ToolsPage';
+import DataPage from './components/Pages/DataPage';
+import ProfilePage from './components/Pages/ProfilePage';
 
 function App() {
   const [isDarkTheme, setIsDarkTheme] = useState(false);
@@ -24,22 +20,12 @@ function App() {
     switch (currentView) {
       case 'dashboard':
         return <Dashboard />;
-      case 'tasks':
-        return (
-          <div className="tasks-view">
-            <h2>Задачи (Tasks 1-10)</h2>
-            <div className="tasks-grid">
-              <Counter />
-              <ListManager />
-              <TogglePanel />
-              <ProfileEditor />
-              <ButtonInteractive />
-              <DataFetcher />
-              <Timer initialTime={60} />
-              <WindowSize />
-            </div>
-          </div>
-        );
+      case 'tools':
+        return <ToolsPage />;
+      case 'data':
+        return <DataPage />;
+      case 'profile':
+        return <ProfilePage />;
       default:
         return <Dashboard />;
     }

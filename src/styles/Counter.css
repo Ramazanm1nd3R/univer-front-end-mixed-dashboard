@@ -1,69 +1,67 @@
 .counter-container {
-  background: white;
-  padding: 2rem;
-  border-radius: 15px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
   text-align: center;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-
-.counter-container:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
-}
-
-.counter-container h3 {
-  color: #667eea;
-  margin-bottom: 1.5rem;
-  font-size: 1.3rem;
 }
 
 .counter-display {
-  font-size: 4rem;
-  font-weight: bold;
-  color: #2d3748;
+  font-size: 3rem;
+  font-weight: 700;
   margin: 2rem 0;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.light-theme .counter-display {
+  color: #1a1a1a;
+}
+
+.dark-theme .counter-display {
+  color: #e6edf3;
 }
 
 .counter-buttons {
   display: flex;
-  gap: 1rem;
+  gap: 0.5rem;
   justify-content: center;
 }
 
 .counter-buttons button {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  border: none;
-  padding: 1rem 2rem;
-  border-radius: 10px;
-  font-size: 1.5rem;
+  padding: 0.625rem 1.5rem;
+  border-radius: 6px;
+  font-size: 1.25rem;
   cursor: pointer;
-  transition: all 0.3s ease;
-  min-width: 60px;
+  font-weight: 600;
+  border: 1px solid;
+  transition: all 0.15s ease;
 }
 
-.counter-buttons button:hover {
-  transform: scale(1.1);
-  box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+.light-theme .counter-buttons button {
+  background: #1a1a1a;
+  color: white;
+  border-color: #1a1a1a;
 }
 
-.counter-buttons button:active {
-  transform: scale(0.95);
+.light-theme .counter-buttons button:hover:not(:disabled) {
+  background: #2d2d2d;
 }
 
-.counter-buttons button:disabled {
-  background: #cbd5e0;
+.light-theme .counter-buttons button:disabled {
+  background: #e5e7eb;
+  color: #9ca3af;
+  border-color: #e5e7eb;
   cursor: not-allowed;
-  transform: none;
 }
 
-.dark-theme .counter-container {
-  background: #2d3748;
-  color: #e2e8f0;
+.dark-theme .counter-buttons button {
+  background: #e6edf3;
+  color: #0d1117;
+  border-color: #e6edf3;
 }
 
-.dark-theme .counter-display {
-  color: #90cdf4;
+.dark-theme .counter-buttons button:hover:not(:disabled) {
+  background: #f0f6fc;
+}
+
+.dark-theme .counter-buttons button:disabled {
+  background: #21262d;
+  color: #484f58;
+  border-color: #30363d;
+  cursor: not-allowed;
 }

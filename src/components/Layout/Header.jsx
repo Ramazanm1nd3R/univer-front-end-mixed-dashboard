@@ -13,10 +13,22 @@ function Header({ onViewChange, currentView }) {
             Dashboard
           </button>
           <button
-            className={currentView === 'tasks' ? 'active' : ''}
-            onClick={() => onViewChange('tasks')}
+            className={currentView === 'basic' ? 'active' : ''}
+            onClick={() => onViewChange('basic')}
           >
-            Все компоненты
+            Базовые
+          </button>
+          <button
+            className={currentView === 'data' ? 'active' : ''}
+            onClick={() => onViewChange('data')}
+          >
+            Данные
+          </button>
+          <button
+            className={currentView === 'profile' ? 'active' : ''}
+            onClick={() => onViewChange('profile')}
+          >
+            Профиль
           </button>
         </nav>
       </div>
