@@ -266,3 +266,41 @@ body {
 .dark-theme ::-webkit-scrollbar-thumb:hover {
   background: #484f58;
 }
+
+.user-info {
+  font-size: 0.875rem;
+  font-weight: 500;
+  padding: 0.625rem 1rem;
+}
+
+.light-theme .user-info {
+  color: #57606a;
+}
+
+.dark-theme .user-info {
+  color: #8b949e;
+}
+
+.logout-button {
+  background: transparent !important;
+  border: 1px solid !important;
+}
+
+.light-theme .logout-button {
+  color: #c81e1e !important;
+  border-color: #c81e1e !important;
+}
+
+.light-theme .logout-button:hover {
+  background: #c81e1e !important;
+  color: white !important;
+}
+
+.dark-theme .logout-button {
+  color: #ff7b72 !important;
+  border-color: #da3633 !important;
+}
+
+.dark-theme .logout-button:hover {
+  background: rgba(248, 81, 73, 0.15) !important;
+}
