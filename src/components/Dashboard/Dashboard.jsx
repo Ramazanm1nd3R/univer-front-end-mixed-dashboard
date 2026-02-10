@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useAuth } from '../../context/AuthContext';
+import api from '../../services/api';
 import Card from './Card';
 import FilterPanel from './FilterPanel';
 import AddItemModal from './AddItemModal';
@@ -6,6 +8,8 @@ import EditItemModal from './EditItemModal';
 import '../../styles/Dashboard.css';
 
 function Dashboard() {
+  const { currentUser } = useAuth();
+  
   const [items, setItems] = useState([]);
   const [filteredItems, setFilteredItems] = useState([]);
   const [filters, setFilters] = useState({
@@ -17,56 +21,60 @@ function Dashboard() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Загрузка из localStorage при монтировании
-  useEffect(() => {
-    const savedItems = localStorage.getItem('dashboardItems');
-    if (savedItems) {
-      setItems(JSON.parse(savedItems));
-    } else {
-      // Начальные данные
-      const initialItems = [
-        {
-          id: 1,
-          title: 'Завершить проект',
-          description: 'Доработать функционал дашборда',
-          category: 'work',
-          status: 'active',
-          priority: 'high',
-          date: new Date('2024-02-10'),
-          likes: 5
-        },
-        {
-          id: 2,
-          title: 'Купить продукты',
-          description: 'Молоко, хлеб, яйца',
-          category: 'personal',
-          status: 'active',
-          priority: 'medium',
-          date: new Date('2024-02-08'),
-          likes: 2
-        },
-        {
-          id: 3,
-          title: 'Тренировка',
-          description: 'Зал в 18:00',
-          category: 'health',
-          status: 'completed',
-          priority: 'low',
-          date: new Date('2024-02-07'),
-          likes: 8
-        }
-      ];
-      setItems(initialItems);
+  // ✅ useCallback для предотвращения предупреждения
+  const loadDashboardItems = useCallback(async () => {
+    if (!currentUser?.id) {
+      console.log('⚠️ Dashboard: Нет текущего пользователя');
+      setItems([]);
+      setLoading(false);
+      return;
     }
-  }, []);
 
-  // Сохранение в localStorage при изменении
-  useEffect(() => {
-    if (items.length > 0) {
-      localStorage.setItem('dashboardItems', JSON.stringify(items));
+    try {
+      setLoading(true);
+      setError(null);
+      
+      console.log('📊 Dashboard: Загрузка данных для пользователя', currentUser.id);
+      
+      const result = await api.getDashboardItems(currentUser.id);
+      
+      console.log('📦 Dashboard: Получено задач', result.items?.length || 0);
+      
+      if (result.success) {
+        // Преобразуем данные из API в формат компонента
+        const transformedItems = result.items.map(item => ({
+          id: item.id,
+          title: item.text,
+          description: item.text,
+          category: item.category || 'other',
+          status: item.status,
+          priority: item.priority || 'medium',
+          date: new Date(item.createdAt),
+          updatedAt: new Date(item.updatedAt),
+          likes: 0
+        }));
+        
+        setItems(transformedItems);
+      } else {
+        setError(result.error || 'Ошибка загрузки данных');
+        setItems([]);
+      }
+    } catch (err) {
+      console.error('❌ Dashboard: Ошибка загрузки', err);
+      setError('Не удалось загрузить задачи');
+      setItems([]);
+    } finally {
+      setLoading(false);
     }
-  }, [items]);
+  }, [currentUser?.id]); // ✅ Зависимость только от currentUser.id
+
+  // ✅ Загрузка данных из API при монтировании или смене пользователя
+  useEffect(() => {
+    loadDashboardItems();
+  }, [loadDashboardItems]); // ✅ Теперь loadDashboardItems в зависимостях
 
   // Фильтрация и сортировка
   useEffect(() => {
@@ -110,34 +118,116 @@ function Dashboard() {
     setFilteredItems(result);
   }, [items, filters, sortBy]);
 
-  const addItem = (newItem) => {
-    const item = {
-      ...newItem,
-      id: Date.now(),
-      date: new Date(),
-      likes: 0
-    };
-    setItems([...items, item]);
+  // ✅ Добавление задачи через API
+  const addItem = async (newItem) => {
+    try {
+      const itemData = {
+        text: newItem.title,
+        status: newItem.status || 'active',
+        priority: newItem.priority || 'medium',
+        category: newItem.category || 'other'
+      };
+
+      console.log('➕ Dashboard: Создание задачи', itemData);
+
+      const result = await api.createDashboardItem(currentUser.id, itemData);
+
+      if (result.success) {
+        console.log('✅ Dashboard: Задача создана', result.item.id);
+        // Перезагружаем список
+        await loadDashboardItems();
+      } else {
+        alert('Ошибка создания задачи: ' + (result.error || 'Неизвестная ошибка'));
+      }
+    } catch (err) {
+      console.error('❌ Dashboard: Ошибка создания задачи', err);
+      alert('Не удалось создать задачу');
+    }
   };
 
-  const updateItem = (updatedItem) => {
-    setItems(items.map(item =>
-      item.id === updatedItem.id ? updatedItem : item
-    ));
+  // ✅ Обновление задачи через API
+  const updateItem = async (updatedItem) => {
+    try {
+      const itemData = {
+        text: updatedItem.title,
+        status: updatedItem.status,
+        priority: updatedItem.priority,
+        category: updatedItem.category
+      };
+
+      console.log('📝 Dashboard: Обновление задачи', updatedItem.id);
+
+      const result = await api.updateDashboardItem(
+        currentUser.id,
+        updatedItem.id,
+        itemData
+      );
+
+      if (result.success) {
+        console.log('✅ Dashboard: Задача обновлена');
+        await loadDashboardItems();
+      } else {
+        alert('Ошибка обновления задачи: ' + (result.error || 'Неизвестная ошибка'));
+      }
+    } catch (err) {
+      console.error('❌ Dashboard: Ошибка обновления задачи', err);
+      alert('Не удалось обновить задачу');
+    }
   };
 
-  const deleteItem = (id) => {
-    setItems(items.filter(item => item.id !== id));
+  // ✅ Удаление задачи через API
+  const deleteItem = async (id) => {
+    try {
+      console.log('🗑️ Dashboard: Удаление задачи', id);
+
+      const result = await api.deleteDashboardItem(currentUser.id, id);
+
+      if (result.success) {
+        console.log('✅ Dashboard: Задача удалена');
+        await loadDashboardItems();
+      } else {
+        alert('Ошибка удаления задачи: ' + (result.error || 'Неизвестная ошибка'));
+      }
+    } catch (err) {
+      console.error('❌ Dashboard: Ошибка удаления задачи', err);
+      alert('Не удалось удалить задачу');
+    }
   };
 
-  const toggleStatus = (id) => {
-    setItems(items.map(item =>
-      item.id === id
-        ? { ...item, status: item.status === 'active' ? 'completed' : 'active' }
-        : item
-    ));
+  // ✅ Изменение статуса через API
+  const toggleStatus = async (id) => {
+    const item = items.find(i => i.id === id);
+    if (!item) return;
+
+    const newStatus = item.status === 'active' ? 'completed' : 'active';
+    
+    try {
+      console.log('🔄 Dashboard: Изменение статуса', id, '->', newStatus);
+
+      const result = await api.updateDashboardItem(
+        currentUser.id,
+        id,
+        {
+          text: item.title,
+          status: newStatus,
+          priority: item.priority,
+          category: item.category
+        }
+      );
+
+      if (result.success) {
+        console.log('✅ Dashboard: Статус изменен');
+        await loadDashboardItems();
+      } else {
+        alert('Ошибка изменения статуса: ' + (result.error || 'Неизвестная ошибка'));
+      }
+    } catch (err) {
+      console.error('❌ Dashboard: Ошибка изменения статуса', err);
+      alert('Не удалось изменить статус');
+    }
   };
 
+  // Лайки (локально, если нужно - добавьте в БД)
   const toggleLike = (id) => {
     setItems(items.map(item =>
       item.id === id
@@ -159,7 +249,7 @@ function Dashboard() {
       other: 0
     };
     items.forEach(item => {
-      stats[item.category]++;
+      stats[item.category] = (stats[item.category] || 0) + 1;
     });
     return stats;
   };
@@ -168,10 +258,52 @@ function Dashboard() {
   const activeCount = items.filter(item => item.status === 'active').length;
   const completedCount = items.filter(item => item.status === 'completed').length;
 
+  // Состояние загрузки
+  if (loading) {
+    return (
+      <div className="dashboard-container">
+        <div className="loading-state">
+          <div className="loading-spinner"></div>
+          <p>Загрузка данных...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Нет пользователя
+  if (!currentUser) {
+    return (
+      <div className="dashboard-container">
+        <div className="empty-state">
+          <p>Пожалуйста, войдите в систему</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Ошибка загрузки
+  if (error) {
+    return (
+      <div className="dashboard-container">
+        <div className="error-state">
+          <p>❌ {error}</p>
+          <button onClick={loadDashboardItems} className="retry-button">
+            Попробовать снова
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="dashboard-container">
       <div className="dashboard-header">
-        <h1>Mixed Dashboard</h1>
+        <div>
+          <h1>Mixed Dashboard</h1>
+          <p className="user-info">
+            👤 {currentUser.firstName} {currentUser.lastName}
+          </p>
+        </div>
         <button
           className="add-button"
           onClick={() => setIsAddModalOpen(true)}
@@ -195,7 +327,7 @@ function Dashboard() {
         </div>
         <div className="stat-card">
           <h4>Работа</h4>
-          <p className="stat-number">{stats.work}</p>
+          <p className="stat-number">{stats.work || 0}</p>
         </div>
       </div>
 
@@ -210,6 +342,9 @@ function Dashboard() {
         {filteredItems.length === 0 ? (
           <div className="empty-state">
             <p>Нет элементов для отображения</p>
+            {items.length === 0 && (
+              <p className="hint">Создайте первую задачу!</p>
+            )}
           </div>
         ) : (
           filteredItems.map(item => (

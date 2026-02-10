@@ -99,11 +99,63 @@ function DataPage() {
 
   // Load Dashboard Analytics
   useEffect(() => {
-    if (currentUser) {
+    if (currentUser?.id) {
+      console.log('🔄 Загрузка данных для пользователя:', currentUser.id);
+      
+      // Сброс состояния перед загрузкой новых данных
+      setDashboardStats({
+        totalTasks: 0,
+        activeTasks: 0,
+        completedTasks: 0,
+        completionRate: 0,
+        tasksToday: 0,
+        tasksThisWeek: 0,
+        tasksThisMonth: 0,
+        tasksByCategory: {},
+        tasksByPriority: { low: 0, medium: 0, high: 0 },
+        tasksByDay: {},
+        tasksByHour: {},
+        tasksByMonth: {},
+        recentActivity: [],
+        completionTrend: [],
+        categoryTrend: {},
+        productivity: {
+          mostProductiveDay: '',
+          mostProductiveHour: '',
+          averageTasksPerDay: 0,
+          completionStreak: 0,
+          totalWorkDays: 0,
+          peakProductivityTime: '',
+          averageCompletionTime: 0,
+          focusScore: 0,
+          efficiencyRate: 0
+        },
+        predictions: {
+          nextWeekEstimate: 0,
+          burnoutRisk: 'low',
+          recommendedDailyTasks: 0,
+          optimalWorkHours: []
+        }
+      });
+      
+      setAdvancedMetrics({
+        velocityScore: 0,
+        qualityIndex: 0,
+        consistencyRating: 0,
+        taskComplexity: 0,
+        workloadBalance: 0,
+        priorityAdherence: 0,
+        categoryDiversity: 0,
+        timeManagementScore: 0
+      });
+      
+      setHeatmapData([]);
+      setInsights([]);
+      
       loadDashboardAnalytics();
     }
-  }, [currentUser, selectedTimeRange]);
-
+  }, [currentUser?.id, selectedTimeRange]); 
+  
   // Clock
   useEffect(() => {
     const timer = setInterval(() => setTime(new Date()), 1000);
