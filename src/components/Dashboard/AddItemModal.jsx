@@ -1,73 +1,66 @@
 import React, { useState } from 'react';
+import '../../styles/Dashboard.css';
 
 function AddItemModal({ onClose, onAdd }) {
   const [formData, setFormData] = useState({
     title: '',
-    description: '',
-    category: 'work',
+    category: 'other',
+    priority: 'medium',
     status: 'active',
-    priority: 'medium'
+    dueDate: '',
+    dueTime: ''
   });
 
-  const [errors, setErrors] = useState({});
-
-  const validate = () => {
-    const newErrors = {};
-    if (!formData.title.trim()) {
-      newErrors.title = 'Заголовок обязателен';
-    }
-    if (!formData.description.trim()) {
-      newErrors.description = 'Описание обязательно';
-    }
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (validate()) {
-      onAdd(formData);
-      onClose();
+    
+    if (!formData.title.trim()) {
+      alert('Пожалуйста, введите название задачи');
+      return;
     }
+
+    onAdd(formData);
+    onClose();
   };
 
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h2>Добавить новый элемент</h2>
+          <h2>Добавить новую задачу</h2>
           <button className="close-button" onClick={onClose}>✕</button>
         </div>
 
         <form onSubmit={handleSubmit} className="modal-form">
-          <div className="form-field">
-            <label>Заголовок *</label>
+          <div className="form-group">
+            <label htmlFor="title">Название задачи *</label>
             <input
               type="text"
+              id="title"
+              name="title"
               value={formData.title}
-              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              className={errors.title ? 'error' : ''}
+              onChange={handleChange}
+              placeholder="Введите название задачи"
+              required
             />
-            {errors.title && <span className="error-message">{errors.title}</span>}
-          </div>
-
-          <div className="form-field">
-            <label>Описание *</label>
-            <textarea
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              rows="3"
-              className={errors.description ? 'error' : ''}
-            />
-            {errors.description && <span className="error-message">{errors.description}</span>}
           </div>
 
           <div className="form-row">
-            <div className="form-field">
-              <label>Категория</label>
+            <div className="form-group">
+              <label htmlFor="category">Категория</label>
               <select
+                id="category"
+                name="category"
                 value={formData.category}
-                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                onChange={handleChange}
               >
                 <option value="work">Работа</option>
                 <option value="personal">Личное</option>
@@ -76,17 +69,56 @@ function AddItemModal({ onClose, onAdd }) {
               </select>
             </div>
 
-            <div className="form-field">
-              <label>Приоритет</label>
+            <div className="form-group">
+              <label htmlFor="priority">Приоритет</label>
               <select
+                id="priority"
+                name="priority"
                 value={formData.priority}
-                onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
+                onChange={handleChange}
               >
-                <option value="high">Высокий</option>
-                <option value="medium">Средний</option>
                 <option value="low">Низкий</option>
+                <option value="medium">Средний</option>
+                <option value="high">Высокий</option>
               </select>
             </div>
+          </div>
+
+          <div className="form-row">
+            <div className="form-group">
+              <label htmlFor="dueDate">Срок (дата)</label>
+              <input
+                type="date"
+                id="dueDate"
+                name="dueDate"
+                value={formData.dueDate}
+                onChange={handleChange}
+              />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="dueTime">Срок (время)</label>
+              <input
+                type="time"
+                id="dueTime"
+                name="dueTime"
+                value={formData.dueTime}
+                onChange={handleChange}
+              />
+            </div>
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="status">Статус</label>
+            <select
+              id="status"
+              name="status"
+              value={formData.status}
+              onChange={handleChange}
+            >
+              <option value="active">Активная</option>
+              <option value="completed">Завершенная</option>
+            </select>
           </div>
 
           <div className="modal-actions">

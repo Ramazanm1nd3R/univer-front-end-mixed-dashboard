@@ -31,7 +31,7 @@ def init_database():
     )
     ''')
     
-    # Таблица задач Dashboard
+    # Таблица задач Dashboard (с добавленными полями due_date и due_time)
     cursor.execute('''
     CREATE TABLE IF NOT EXISTS dashboard_items (
         id TEXT PRIMARY KEY,
@@ -40,11 +40,25 @@ def init_database():
         status TEXT NOT NULL,
         priority TEXT,
         category TEXT,
+        due_date TEXT,
+        due_time TEXT,
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL,
         FOREIGN KEY (user_id) REFERENCES users (id)
     )
     ''')
+    
+    # Проверяем и добавляем новые колонки если их нет (для существующих БД)
+    cursor.execute("PRAGMA table_info(dashboard_items)")
+    columns = [column[1] for column in cursor.fetchall()]
+    
+    if 'due_date' not in columns:
+        cursor.execute('ALTER TABLE dashboard_items ADD COLUMN due_date TEXT')
+        print('✅ Добавлена колонка due_date')
+    
+    if 'due_time' not in columns:
+        cursor.execute('ALTER TABLE dashboard_items ADD COLUMN due_time TEXT')
+        print('✅ Добавлена колонка due_time')
     
     # Таблица активности пользователей
     cursor.execute('''
@@ -106,7 +120,7 @@ def init_database():
             demo_user['settings_data']
         ))
         
-        # Создаем демо-задачи
+        # Создаем демо-задачи с датами и временем
         demo_tasks = [
             {
                 'id': 'task-demo-1',
@@ -115,6 +129,8 @@ def init_database():
                 'status': 'completed',
                 'priority': 'high',
                 'category': 'Обучение',
+                'due_date': '2025-01-20',
+                'due_time': '15:00',
                 'created_at': '2025-01-15T10:00:00Z',
                 'updated_at': '2025-01-20T15:00:00Z'
             },
@@ -125,6 +141,8 @@ def init_database():
                 'status': 'completed',
                 'priority': 'medium',
                 'category': 'Работа',
+                'due_date': '2025-01-22',
+                'due_time': '14:00',
                 'created_at': '2025-01-18T09:00:00Z',
                 'updated_at': '2025-01-22T14:00:00Z'
             },
@@ -135,6 +153,8 @@ def init_database():
                 'status': 'active',
                 'priority': 'high',
                 'category': 'Дизайн',
+                'due_date': '2025-02-15',
+                'due_time': '16:00',
                 'created_at': '2025-02-01T11:00:00Z',
                 'updated_at': '2025-02-05T16:00:00Z'
             },
@@ -145,6 +165,8 @@ def init_database():
                 'status': 'active',
                 'priority': 'medium',
                 'category': 'Документация',
+                'due_date': '2025-02-20',
+                'due_time': '10:00',
                 'created_at': '2025-02-03T13:00:00Z',
                 'updated_at': '2025-02-08T10:00:00Z'
             },
@@ -155,6 +177,8 @@ def init_database():
                 'status': 'active',
                 'priority': 'low',
                 'category': 'Разработка',
+                'due_date': '2025-02-18',
+                'due_time': '12:00',
                 'created_at': '2025-02-09T08:00:00Z',
                 'updated_at': '2025-02-10T12:00:00Z'
             }
@@ -162,8 +186,8 @@ def init_database():
         
         for task in demo_tasks:
             cursor.execute('''
-            INSERT INTO dashboard_items (id, user_id, text, status, priority, category, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO dashboard_items (id, user_id, text, status, priority, category, due_date, due_time, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', (
                 task['id'],
                 task['user_id'],
@@ -171,6 +195,8 @@ def init_database():
                 task['status'],
                 task['priority'],
                 task['category'],
+                task['due_date'],
+                task['due_time'],
                 task['created_at'],
                 task['updated_at']
             ))

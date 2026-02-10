@@ -24,7 +24,6 @@ function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // ✅ useCallback для предотвращения предупреждения
   const loadDashboardItems = useCallback(async () => {
     if (!currentUser?.id) {
       console.log('⚠️ Dashboard: Нет текущего пользователя');
@@ -44,7 +43,6 @@ function Dashboard() {
       console.log('📦 Dashboard: Получено задач', result.items?.length || 0);
       
       if (result.success) {
-        // Преобразуем данные из API в формат компонента
         const transformedItems = result.items.map(item => ({
           id: item.id,
           title: item.text,
@@ -52,6 +50,8 @@ function Dashboard() {
           category: item.category || 'other',
           status: item.status,
           priority: item.priority || 'medium',
+          dueDate: item.dueDate || null,
+          dueTime: item.dueTime || null,
           date: new Date(item.createdAt),
           updatedAt: new Date(item.updatedAt),
           likes: 0
@@ -69,28 +69,23 @@ function Dashboard() {
     } finally {
       setLoading(false);
     }
-  }, [currentUser?.id]); // ✅ Зависимость только от currentUser.id
+  }, [currentUser?.id]);
 
-  // ✅ Загрузка данных из API при монтировании или смене пользователя
   useEffect(() => {
     loadDashboardItems();
-  }, [loadDashboardItems]); // ✅ Теперь loadDashboardItems в зависимостях
+  }, [loadDashboardItems]);
 
-  // Фильтрация и сортировка
   useEffect(() => {
     let result = [...items];
 
-    // Фильтр по категории
     if (filters.category !== 'all') {
       result = result.filter(item => item.category === filters.category);
     }
 
-    // Фильтр по статусу
     if (filters.status !== 'all') {
       result = result.filter(item => item.status === filters.status);
     }
 
-    // Поиск
     if (filters.search) {
       result = result.filter(item =>
         item.title.toLowerCase().includes(filters.search.toLowerCase()) ||
@@ -98,7 +93,6 @@ function Dashboard() {
       );
     }
 
-    // Сортировка
     result.sort((a, b) => {
       switch (sortBy) {
         case 'date':
@@ -110,6 +104,13 @@ function Dashboard() {
           return priorityOrder[b.priority] - priorityOrder[a.priority];
         case 'likes':
           return b.likes - a.likes;
+        case 'dueDate':
+          if (!a.dueDate && !b.dueDate) return 0;
+          if (!a.dueDate) return 1;
+          if (!b.dueDate) return -1;
+          const dateA = new Date(a.dueDate + (a.dueTime ? `T${a.dueTime}` : ''));
+          const dateB = new Date(b.dueDate + (b.dueTime ? `T${b.dueTime}` : ''));
+          return dateA - dateB;
         default:
           return 0;
       }
@@ -118,14 +119,15 @@ function Dashboard() {
     setFilteredItems(result);
   }, [items, filters, sortBy]);
 
-  // ✅ Добавление задачи через API
   const addItem = async (newItem) => {
     try {
       const itemData = {
         text: newItem.title,
         status: newItem.status || 'active',
         priority: newItem.priority || 'medium',
-        category: newItem.category || 'other'
+        category: newItem.category || 'other',
+        dueDate: newItem.dueDate || null,
+        dueTime: newItem.dueTime || null
       };
 
       console.log('➕ Dashboard: Создание задачи', itemData);
@@ -134,7 +136,6 @@ function Dashboard() {
 
       if (result.success) {
         console.log('✅ Dashboard: Задача создана', result.item.id);
-        // Перезагружаем список
         await loadDashboardItems();
       } else {
         alert('Ошибка создания задачи: ' + (result.error || 'Неизвестная ошибка'));
@@ -145,14 +146,15 @@ function Dashboard() {
     }
   };
 
-  // ✅ Обновление задачи через API
   const updateItem = async (updatedItem) => {
     try {
       const itemData = {
         text: updatedItem.title,
         status: updatedItem.status,
         priority: updatedItem.priority,
-        category: updatedItem.category
+        category: updatedItem.category,
+        dueDate: updatedItem.dueDate || null,
+        dueTime: updatedItem.dueTime || null
       };
 
       console.log('📝 Dashboard: Обновление задачи', updatedItem.id);
@@ -175,7 +177,6 @@ function Dashboard() {
     }
   };
 
-  // ✅ Удаление задачи через API
   const deleteItem = async (id) => {
     try {
       console.log('🗑️ Dashboard: Удаление задачи', id);
@@ -194,7 +195,6 @@ function Dashboard() {
     }
   };
 
-  // ✅ Изменение статуса через API
   const toggleStatus = async (id) => {
     const item = items.find(i => i.id === id);
     if (!item) return;
@@ -211,7 +211,9 @@ function Dashboard() {
           text: item.title,
           status: newStatus,
           priority: item.priority,
-          category: item.category
+          category: item.category,
+          dueDate: item.dueDate,
+          dueTime: item.dueTime
         }
       );
 
@@ -227,7 +229,6 @@ function Dashboard() {
     }
   };
 
-  // Лайки (локально, если нужно - добавьте в БД)
   const toggleLike = (id) => {
     setItems(items.map(item =>
       item.id === id
@@ -258,7 +259,6 @@ function Dashboard() {
   const activeCount = items.filter(item => item.status === 'active').length;
   const completedCount = items.filter(item => item.status === 'completed').length;
 
-  // Состояние загрузки
   if (loading) {
     return (
       <div className="dashboard-container">
@@ -270,7 +270,6 @@ function Dashboard() {
     );
   }
 
-  // Нет пользователя
   if (!currentUser) {
     return (
       <div className="dashboard-container">
@@ -281,7 +280,6 @@ function Dashboard() {
     );
   }
 
-  // Ошибка загрузки
   if (error) {
     return (
       <div className="dashboard-container">
