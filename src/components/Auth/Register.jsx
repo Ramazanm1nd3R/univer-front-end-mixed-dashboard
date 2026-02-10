@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import VerificationCode from './VerificationCode';
 import './Auth.css';
 
 function Register({ onSwitchToLogin }) {
-  const { register } = useAuth();
+  const { initiateRegister, pendingVerification } = useAuth();
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -53,7 +54,7 @@ function Register({ onSwitchToLogin }) {
     setLoading(true);
 
     try {
-      register(formData);
+      await initiateRegister(formData);
     } catch (err) {
       setErrors({ general: err.message });
     } finally {
@@ -71,6 +72,11 @@ function Register({ onSwitchToLogin }) {
       });
     }
   };
+
+  // Если код отправлен, показываем форму верификации
+  if (pendingVerification && pendingVerification.type === 'register') {
+    return <VerificationCode email={formData.email} type="register" />;
+  }
 
   return (
     <div className="auth-container">
@@ -154,7 +160,7 @@ function Register({ onSwitchToLogin }) {
           </div>
 
           <button type="submit" className="auth-button" disabled={loading}>
-            {loading ? 'Регистрация...' : 'Зарегистрироваться'}
+            {loading ? 'Отправка...' : 'Получить код'}
           </button>
         </form>
 

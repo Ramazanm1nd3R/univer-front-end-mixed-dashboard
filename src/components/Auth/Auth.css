@@ -352,3 +352,87 @@
     padding: 1rem;
   }
 }
+
+.verification-input {
+  text-align: center;
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: 0.5rem;
+  font-family: 'Courier New', monospace;
+}
+
+.input-hint {
+  font-size: 0.75rem;
+  margin-top: 0.5rem;
+  text-align: center;
+}
+
+.light-theme .input-hint {
+  color: #57606a;
+}
+
+.dark-theme .input-hint {
+  color: #8b949e;
+}
+
+.timer-display {
+  text-align: center;
+  padding: 1rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  margin: 0.5rem 0;
+}
+
+.light-theme .timer-display {
+  background: #f8f9fa;
+  color: #1a1a1a;
+}
+
+.dark-theme .timer-display {
+  background: #0d1117;
+  color: #e6edf3;
+}
+
+.timer-expired {
+  color: #c81e1e;
+  font-weight: 600;
+}
+
+.dark-theme .timer-expired {
+  color: #ff7b72;
+}
+
+.resend-button {
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid;
+  transition: all 0.15s ease;
+  background: transparent;
+  margin-top: 0.5rem;
+}
+
+.light-theme .resend-button {
+  color: #667eea;
+  border-color: #667eea;
+}
+
+.light-theme .resend-button:hover:not(:disabled) {
+  background: rgba(102, 126, 234, 0.1);
+}
+
+.dark-theme .resend-button {
+  color: #58a6ff;
+  border-color: #58a6ff;
+}
+
+.dark-theme .resend-button:hover:not(:disabled) {
+  background: rgba(88, 166, 255, 0.1);
+}
+
+.resend-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

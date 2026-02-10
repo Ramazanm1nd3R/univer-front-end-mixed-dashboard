@@ -8,6 +8,7 @@ function ToolsPage() {
 
   const handleCalculate = () => {
     try {
+      // eslint-disable-next-line no-eval
       const result = eval(calcInput);
       setCalcResult(result);
     } catch (error) {
