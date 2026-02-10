@@ -1,9 +1,7 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
+import api from '../services/api';
 
 const AuthContext = createContext();
-
-// API URL для Flask backend
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001/api';
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
@@ -57,26 +55,13 @@ export const AuthProvider = ({ children }) => {
     console.log('🔐 Код:', code);
 
     try {
-      // Отправляем запрос на Flask backend
-      const response = await fetch(`${API_URL}/send-verification-code`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: email,
-          code: code,
-          type: type
-        })
-      });
+      const result = await api.sendVerificationCode(email, code, type);
 
-      const data = await response.json();
-
-      if (data.success) {
+      if (result.success) {
         console.log('✅ Email успешно отправлен на:', email);
         alert(`✅ Код отправлен на ${email}\n\n🔐 Код (для теста): ${code}\n⏱️ Действителен 60 секунд`);
       } else {
-        throw new Error(data.error || 'Ошибка отправки');
+        throw new Error(result.error || 'Ошибка отправки');
       }
 
       return { success: true };
@@ -88,18 +73,17 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Регистрация - шаг 1
   const initiateRegister = async (userData) => {
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
-    
-    if (users.find(u => u.email === userData.email)) {
-      throw new Error('Пользователь с таким email уже существует');
-    }
-
+    // Сохраняем данные для регистрации
     localStorage.setItem('pendingRegistration', JSON.stringify(userData));
+    
+    // Отправляем код верификации
     await sendVerificationCode(userData.email, 'register');
   };
 
-  const completeRegister = (code) => {
+  // Регистрация - шаг 2 (после ввода кода)
+  const completeRegister = async (code) => {
     const verification = JSON.parse(localStorage.getItem('pendingVerification') || '{}');
     const userData = JSON.parse(localStorage.getItem('pendingRegistration') || '{}');
 
@@ -124,61 +108,52 @@ export const AuthProvider = ({ children }) => {
       throw new Error(`Неверный код. Осталось попыток: ${3 - verification.attempts}`);
     }
 
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
-    const newUser = {
-      id: Date.now().toString(),
+    // Регистрация через API
+    const result = await api.register({
       email: userData.email,
       password: userData.password,
       firstName: userData.firstName,
-      lastName: userData.lastName,
-      createdAt: new Date().toISOString(),
-      profile: {
-        phone: '',
-        bio: '',
-        company: '',
-        position: '',
-        location: '',
-        website: '',
-        github: '',
-        linkedin: '',
-        twitter: ''
-      },
-      settings: {
-        emailNotifications: true,
-        pushNotifications: false,
-        weeklyDigest: true,
-        language: 'ru',
-        timezone: 'Asia/Almaty',
-        dateFormat: 'DD.MM.YYYY',
-        theme: 'auto'
-      }
-    };
+      lastName: userData.lastName
+    });
 
-    users.push(newUser);
-    localStorage.setItem('users', JSON.stringify(users));
+    if (!result.success) {
+      throw new Error(result.error || 'Ошибка регистрации');
+    }
 
+    // Очищаем временные данные
     localStorage.removeItem('pendingVerification');
     localStorage.removeItem('pendingRegistration');
     setPendingVerification(null);
 
-    createSession(newUser);
+    // Получаем данные пользователя и создаем сессию
+    const userResult = await api.getUser(result.userId);
+    if (userResult.success) {
+      createSession(userResult.user);
+    }
   };
 
-  const initiateLogin = async (email) => {
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
-    const user = users.find(u => u.email === email);
+  // Вход - шаг 1
+  const initiateLogin = async (credentials) => {
+    // Проверяем логин через API
+    const result = await api.login(credentials);
 
-    if (!user) {
-      throw new Error('Пользователь не найден');
+    if (!result.success) {
+      throw new Error(result.error || 'Ошибка входа');
     }
 
-    await sendVerificationCode(email, 'login');
+    // Сохраняем user ID для дальнейшей верификации
+    localStorage.setItem('pendingLoginUserId', result.user.id);
+
+    // Отправляем код верификации
+    await sendVerificationCode(credentials.email, 'login');
   };
 
-  const completeLogin = (code) => {
+  // Вход - шаг 2 (после ввода кода)
+  const completeLogin = async (code) => {
     const verification = JSON.parse(localStorage.getItem('pendingVerification') || '{}');
+    const userId = localStorage.getItem('pendingLoginUserId');
 
-    if (!verification.code) {
+    if (!verification.code || !userId) {
       throw new Error('Данные не найдены');
     }
 
@@ -192,46 +167,47 @@ export const AuthProvider = ({ children }) => {
       
       if (verification.attempts >= 3) {
         localStorage.removeItem('pendingVerification');
+        localStorage.removeItem('pendingLoginUserId');
         throw new Error('Превышено количество попыток');
       }
       
       throw new Error(`Неверный код. Осталось попыток: ${3 - verification.attempts}`);
     }
 
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
-    const user = users.find(u => u.email === verification.email);
+    // Получаем данные пользователя
+    const result = await api.getUser(userId);
 
-    if (!user) {
+    if (!result.success) {
       throw new Error('Пользователь не найден');
     }
 
+    // Очищаем временные данные
     localStorage.removeItem('pendingVerification');
+    localStorage.removeItem('pendingLoginUserId');
     setPendingVerification(null);
 
-    createSession(user);
+    // Создаем сессию
+    createSession(result.user);
   };
 
+  // Создание сессии
   const createSession = (user) => {
     const session = {
       user: {
         id: user.id,
         email: user.email,
         firstName: user.firstName,
-        lastName: user.lastName
+        lastName: user.lastName,
+        createdAt: user.createdAt
       },
       expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
     };
 
     localStorage.setItem('currentSession', JSON.stringify(session));
     setCurrentUser(session.user);
-
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
-    const updatedUsers = users.map(u => 
-      u.id === user.id ? { ...u, lastLogin: new Date().toISOString() } : u
-    );
-    localStorage.setItem('users', JSON.stringify(updatedUsers));
   };
 
+  // Повторная отправка кода
   const resendCode = async () => {
     const verification = JSON.parse(localStorage.getItem('pendingVerification') || '{}');
     
@@ -247,34 +223,29 @@ export const AuthProvider = ({ children }) => {
     setCurrentUser(null);
   };
 
-  const updateUserProfile = (profileData) => {
+  const updateUserProfile = async (profileData) => {
     if (!currentUser) return;
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
-    const updatedUsers = users.map(user => {
-      if (user.id === currentUser.id) {
-        return { ...user, profile: { ...user.profile, ...profileData } };
-      }
-      return user;
-    });
-    localStorage.setItem('users', JSON.stringify(updatedUsers));
+    
+    const result = await api.updateProfile(currentUser.id, profileData);
+    if (!result.success) {
+      throw new Error('Ошибка обновления профиля');
+    }
   };
 
-  const updateUserSettings = (settingsData) => {
+  const updateUserSettings = async (settingsData) => {
     if (!currentUser) return;
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
-    const updatedUsers = users.map(user => {
-      if (user.id === currentUser.id) {
-        return { ...user, settings: { ...user.settings, ...settingsData } };
-      }
-      return user;
-    });
-    localStorage.setItem('users', JSON.stringify(updatedUsers));
+    
+    const result = await api.updateSettings(currentUser.id, settingsData);
+    if (!result.success) {
+      throw new Error('Ошибка обновления настроек');
+    }
   };
 
-  const getCurrentUserData = () => {
+  const getCurrentUserData = async () => {
     if (!currentUser) return null;
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
-    return users.find(u => u.id === currentUser.id);
+    
+    const result = await api.getUser(currentUser.id);
+    return result.success ? result.user : null;
   };
 
   const value = {

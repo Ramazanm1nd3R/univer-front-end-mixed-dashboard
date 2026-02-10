@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import VerificationCode from './VerificationCode';
 import './Auth.css';
 
 function Login({ onSwitchToRegister }) {
-  const { login } = useAuth();
+  const { initiateLogin, pendingVerification } = useAuth();
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -17,7 +18,7 @@ function Login({ onSwitchToRegister }) {
     setLoading(true);
 
     try {
-      login(formData);
+      await initiateLogin(formData);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -29,6 +30,11 @@ function Login({ onSwitchToRegister }) {
     setFormData(prev => ({ ...prev, [field]: value }));
     setError('');
   };
+
+  // Если код отправлен, показываем форму верификации
+  if (pendingVerification && pendingVerification.type === 'login') {
+    return <VerificationCode email={formData.email} type="login" />;
+  }
 
   return (
     <div className="auth-container">
